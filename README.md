@@ -67,7 +67,7 @@ Bitcoin Core → bitcoin-mine → SV2 Template Viewer
 ./bitcoin-mine -testnet4 -sv2port=8442 -sv2interval=20
 
 # Run template viewer
-git clone https://github.com/[username]/sv2-template-viewer
+git clone https://github.com/OIEIEIO/sv2-template-viewer
 cd sv2-template-viewer
 cargo run
 ```
