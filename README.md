@@ -64,7 +64,7 @@ Bitcoin Core → bitcoin-mine → SV2 Template Viewer
 ./bitcoin-node -testnet4 -ipcbind=unix
 
 # Start template provider (in separate terminal)  
-./bitcoin-mine -testnet4 -sv2port=8442 -sv2interval=20
+./bitcoin-mine -testnet4 -sv2port=8442 -sv2interval=20 -sv2feedelta=1000 -debug=sv2 -loglevel=sv2:trace
 
 # Run template viewer
 git clone https://github.com/OIEIEIO/sv2-template-viewer
