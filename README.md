@@ -1,103 +1,134 @@
 # SV2 Template Viewer
 
-A Stratum V2 template viewer that connects to `bitcoin-mine` template provider and displays live Bitcoin block templates in real-time.
+A Stratum V2 client that connects to bitcoin-mine and displays live Bitcoin block templates in real-time.
 
 ## Overview
 
-This project demonstrates a working Stratum V2 client built from core SV2 crates, connecting to Sjors' Bitcoin Core SV2 integration to receive and parse actual Bitcoin block templates.
+This project demonstrates a working Stratum V2 implementation built from core SV2 crates, connecting directly to Sjors' Bitcoin Core SV2 integration to receive and parse actual Bitcoin block templates as they're generated.
 
 ## Features
 
-- ✅ **Noise Protocol Encryption** - Secure SV2 handshake and communication
-- ✅ **SV2 Message Framing** - Proper encrypted message handling
+- ✅ **Noise Protocol Encryption** - Complete NX handshake implementation
+- ✅ **SV2 Message Framing** - Proper encrypted header/payload handling
 - ✅ **Real-time Template Streaming** - Live Bitcoin block templates
 - ✅ **Template Parsing** - Extract template ID, coinbase value, difficulty
 - ✅ **Tip Change Detection** - Monitor Bitcoin network tip changes
-- ✅ **Multi-message Processing** - Handle batched SV2 messages
+- ✅ **Multi-message Processing** - Handle batched SV2 messages correctly
 
-## Screenshots
+## Demo
 
 ![Template Viewer Output](docs/screenshots/template-viewer-output.png)
-*Live template reception and parsing*
+*Real-time template reception showing Template IDs, coinbase values (~50 BTC), and tip changes*
 
-![Bitcoin Mine Logs](docs/screenshots/bitcoin-mine-logs.png)
-*Template provider sending templates*
+![Bitcoin Mine Logs](docs/screenshots/bitcoin-mine-logs.png)  
+*Template provider logs showing NewTemplate and SetNewPrevHash message flow*
 
 ![Bitcoin Node Blocks](docs/screenshots/bitcoin-node-blocks.png)
-*Bitcoin Core generating block templates*
+*Bitcoin Core generating actual block templates with real transaction data*
+
+## Architecture
+
+This implementation connects three components:
+
+1. **Bitcoin Core** (`bitcoin-node`) - Generates block templates
+2. **Template Provider** (`bitcoin-mine`) - Serves templates via SV2 protocol  
+3. **Template Viewer** (this project) - SV2 client displaying live data
+
+```
+Bitcoin Core → bitcoin-mine → SV2 Template Viewer
+    (blocks)     (SV2 protocol)     (display)
+```
+
+## Technical Implementation
+
+### Protocol Stack
+- **Transport**: TCP with Noise Protocol encryption
+- **Framing**: SV2 encrypted message framing (separate header/payload encryption)
+- **Messages**: SetupConnection, NewTemplate, SetNewPrevHash, CoinbaseOutputConstraints
+
+### Key Features
+- Built from **core SV2 crates** (not full stratum framework)
+- **Multi-message buffer processing** - handles batched SV2 messages  
+- **Real Bitcoin integration** - connects to actual Bitcoin Core (not mock data)
+- **Template parsing** - extracts meaningful data from binary SV2 messages
 
 ## Quick Start
 
 ### Prerequisites
-
 - Rust (latest stable)
-- Bitcoin Core with SV2 support (Sjors' fork)
+- Bitcoin SV2 binaries from [Sjors' releases](https://github.com/Sjors/bitcoin/releases)
 
-### Setup Bitcoin Node & Template Provider
-
-1. Download Bitcoin SV2 binaries:
+### Run
 ```bash
-wget https://github.com/Sjors/bitcoin/releases/download/sv2-tp-v0.1.17-ipc/bitcoin-sv2-tp-0.1.17-ipc-x86_64-linux-gnu.tar.gz
-tar -xzf bitcoin-sv2-tp-0.1.17-ipc-x86_64-linux-gnu.tar.gz
-cd bitcoin-sv2-tp-0.1.17-ipc/bin
+# Start Bitcoin node (in separate terminal)
+./bitcoin-node -testnet4 -ipcbind=unix
 
-Start Bitcoin node (testnet4):
+# Start template provider (in separate terminal)  
+./bitcoin-mine -testnet4 -sv2port=8442 -sv2interval=20
 
-bash./bitcoin-node -testnet4 -ipcbind=unix
-
-Start template provider:
-
-bash./bitcoin-mine -testnet4 -sv2port=8442 -sv2interval=20 -sv2feedelta=1000 -debug=sv2 -loglevel=sv2:trace
-Run Template Viewer
-bashgit clone https://github.com/[YOUR_USERNAME]/sv2-template-viewer
+# Run template viewer
+git clone https://github.com/[username]/sv2-template-viewer
 cd sv2-template-viewer
 cargo run
-Technical Details
-Architecture
+```
 
-Noise Protocol: Implements NX handshake for secure communication
-SV2 Framing: Separate header/payload encryption as per SV2 spec
-Message Processing: Handles multiple SV2 messages in single TCP reads
-Template Parsing: Extracts meaningful data from binary template format
+## What You'll See
 
-SV2 Messages Handled
+The template viewer displays live Bitcoin data:
 
-0x00 SetupConnection
-0x01 SetupConnectionSuccess
-0x70 CoinbaseOutputConstraints
-0x71 NewTemplate
-0x72 SetNewPrevHash
+- **Template IDs**: Sequential identifiers (1, 2, 3...)
+- **Future vs Active**: Template state for mining readiness
+- **Coinbase Values**: Block reward + fees (~50+ BTC on testnet4)
+- **Tip Changes**: Real-time Bitcoin network progression
+- **Block Data**: Versions, timestamps, difficulty
 
-Dependencies
-toml[dependencies]
+Example output:
+```
+🎯 NewTemplate message received!
+📋 Template ID: 23
+📋 Future template: false
+📋 Block version: 0x20000000  
+📋 Coinbase TX version: 2
+📋 Potential coinbase value: 5007224698 satoshis (50.07224698 BTC)
+
+🎯 SetNewPrevHash message received!
+📋 Template ID: 23
+📋 Previous hash: 000000000001fd7ac7ecc5817ff43bea0d152913edc9906d146966e1f3cf1735a
+📋 Header timestamp: 1735689847
+```
+
+## Dependencies
+
+```toml
+[dependencies]
 tokio = { version = "1.0", features = ["full"] }
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = "0.3"  
 anyhow = "1.0"
 hex = "0.4"
+
+# Core SV2 crates
 roles_logic_sv2 = { git = "https://github.com/stratum-mining/stratum.git" }
 binary_sv2 = { git = "https://github.com/stratum-mining/stratum.git" }
 noise_sv2 = { git = "https://github.com/stratum-mining/stratum.git" }
 key_utils = { git = "https://github.com/stratum-mining/stratum.git" }
-What You'll See
-The template viewer displays:
+```
 
-Template IDs: Sequential template identifiers
-Future vs Active: Whether templates are for future use or immediate mining
-Coinbase Values: Block reward + fees (typically ~50+ BTC on testnet4)
-Block Versions: Bitcoin block version fields
-Tip Changes: When new blocks are found on the network
-Previous Hashes: Bitcoin block chain progression
+## Why This Approach?
 
-Implementation Notes
-Built from first principles using core SV2 crates rather than the full stratum framework. This provides:
+Instead of using the full stratum framework, this implementation:
 
-Deep understanding of SV2 protocol mechanics
-Minimal dependencies and clean implementation
-Direct Bitcoin Core integration (not mock data)
-Production-ready foundation for mining applications
+- **Learns SV2 from first principles** - understand every protocol detail
+- **Minimal dependencies** - only core crates, no framework bloat
+- **Real Bitcoin integration** - actual block templates, not test data
+- **Production foundation** - could scale to real mining infrastructure
 
-Contributing
-Feel free to open issues or submit PRs to improve the template viewer!
-License
-MIT License
+Perfect for understanding how Stratum V2 actually works under the hood!
+
+## Contributing
+
+Issues and PRs welcome! This is an educational project showcasing SV2 protocol implementation.
+
+## License
+
+MIT
