@@ -20,13 +20,6 @@ const NEW_TEMPLATE_MSG_TYPE: u8 = 0x71;
 const SET_NEW_PREV_HASH_MSG_TYPE: u8 = 0x72;
 const REQUEST_TRANSACTION_DATA_MSG_TYPE: u8 = 0x73;
 
-// Simple coinbase constraints structure
-#[derive(Debug)]
-struct CoinbaseOutputConstraints {
-    max_additional_size: u32,
-    max_additional_sigops: u16,
-}
-
 async fn send_sv2_message(
     stream: &mut TcpStream,
     noise_codec: &mut NoiseCodec,
